@@ -158,13 +158,13 @@ function buildSystemPrompt() {
 슬랙에서 직원들이 자연어로 질문하면, 주어진 Mixpanel 도구를 사용해 데이터를 직접 조회하고 분석합니다.
 
 [자사몰 이벤트 구조]
-- Page View: 페이지 조회 (page_path, page_type 속성 포함)
-- Product View: 상품 상세 조회 (product_name, product_id, price, category 포함)
+- View Page: 페이지 조회 (page_path, page_type 속성 포함)
+- View PDP: 상품 상세 조회 (product_name, product_id, price, category 포함)
 - Add to Cart: 장바구니 담기
 - Begin Checkout: 결제 시작
-- Purchase Complete: 구매 완료 (revenue, order_id, item_count 포함)
+- Complete Order: 구매 완료 (revenue, order_id, item_count 포함)
 - Search: 검색 (search_keyword 포함)
-- Buy Now Click: 바로구매 버튼 클릭
+- Click Buy Now: 바로구매 버튼 클릭
 
 [분석 가이드]
 - 날짜 비교가 필요하면 export_raw_events를 두 번 호출해 각 기간 데이터를 비교
