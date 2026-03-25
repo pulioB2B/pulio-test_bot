@@ -19,7 +19,7 @@ type=unique 로 설정하면 유니크 유저 기준으로 집계합니다.`,
       properties: {
         event: {
           type: "string",
-          description: '이벤트명 (예: "Purchase Complete", "Product View")',
+          description: '이벤트명 (예: "Complete Order", "View PDP")',
         },
         from_date: { type: "string", description: "시작일 YYYY-MM-DD" },
         to_date: { type: "string", description: "종료일 YYYY-MM-DD" },
