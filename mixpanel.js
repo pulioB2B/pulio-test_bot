@@ -4,7 +4,7 @@ const BASE_URL = "https://data.mixpanel.com/api/2.0";
 
 function getAuthHeader() {
   const secret = process.env.MIXPANEL_API_SECRET;
-  const encoded = Buffer.from(`${secret}:`).toString("base64");
+  const encoded = Buffer.from(`${secret}`).toString("base64");
   return `Basic ${encoded}`;
 }
 
