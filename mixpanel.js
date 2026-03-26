@@ -1,10 +1,20 @@
 const axios = require("axios");
 
-const BASE_URL = "https://data.mixpanel.com/api/2.0";
+// Query API / Export API 엔드포인트
+const QUERY_URL = "https://mixpanel.com/api/2.0";
+const EXPORT_URL = "https://data.mixpanel.com/api/2.0/export";
+const LEXICON_URL = "https://mixpanel.com/api/app/projects";
 
+// ─────────────────────────────────────────
+// 인증: Service Account (Basic Auth)
+// username = MIXPANEL_SA_USERNAME  (예: abc.serviceaccount@mixpanel.com)
+// password = MIXPANEL_SA_SECRET
+// API Secret은 deprecated → Service Account 사용
+// ─────────────────────────────────────────
 function getAuthHeader() {
-  const secret = process.env.MIXPANEL_API_SECRET;
-  const encoded = Buffer.from(`${secret}:`).toString("base64");
+  const username = process.env.MIXPANEL_SA_USERNAME;
+  const password = process.env.MIXPANEL_SA_SECRET;
+  const encoded = Buffer.from(`${username}:${password}`).toString("base64");
   return `Basic ${encoded}`;
 }
 
@@ -26,7 +36,7 @@ async function getAggregatedStats({
 }) {
   const params = { project_id: pid(), event, from_date, to_date, type, unit };
   if (on) params.on = on;
-  const res = await axios.get(`${BASE_URL}/segmentation`, {
+  const res = await axios.get(`${QUERY_URL}/segmentation`, {
     headers: { Authorization: getAuthHeader() },
     params,
   });
@@ -49,7 +59,7 @@ async function exportRawEvents({
   if (event) params.event = JSON.stringify([event]);
   if (where) params.where = where;
 
-  const res = await axios.get(`${BASE_URL}/export`, {
+  const res = await axios.get(EXPORT_URL, {
     headers: { Authorization: getAuthHeader() },
     params,
     responseType: "text",
@@ -85,7 +95,7 @@ async function exportRawEvents({
 // 3. 퍼널 분석
 // ─────────────────────────────────────────
 async function getFunnel({ funnel_id, from_date, to_date, unit = "day" }) {
-  const res = await axios.get(`${BASE_URL}/funnels`, {
+  const res = await axios.get(`${QUERY_URL}/funnels`, {
     headers: { Authorization: getAuthHeader() },
     params: { project_id: pid(), funnel_id, from_date, to_date, unit },
   });
@@ -103,7 +113,7 @@ async function getRetention({
   unit = "day",
   interval_count = 7,
 }) {
-  const res = await axios.get(`${BASE_URL}/retention`, {
+  const res = await axios.get(`${QUERY_URL}/retention`, {
     headers: { Authorization: getAuthHeader() },
     params: {
       project_id: pid(),
@@ -129,7 +139,7 @@ async function getTopEvents({
   limit = 20,
   type = "general",
 }) {
-  const res = await axios.get(`${BASE_URL}/events/top`, {
+  const res = await axios.get(`${QUERY_URL}/events/top`, {
     headers: { Authorization: getAuthHeader() },
     params: { project_id: pid(), from_date, to_date, limit, type },
   });
@@ -158,8 +168,32 @@ async function getSegmentByProperty({
 }
 
 // ─────────────────────────────────────────
+// 7. 이벤트·속성 스키마 조회 (Lexicon API)
+//    Claude가 분석 전 실제 이벤트명/속성명 확인용
+// ─────────────────────────────────────────
+async function getEventSchemas({ entity_type = "event" }) {
+  const res = await axios.get(
+    `${LEXICON_URL}/${pid()}/schemas/${entity_type}`,
+    { headers: { Authorization: getAuthHeader() } },
+  );
+
+  // 스키마에서 이벤트명 + 주요 속성만 추려서 반환 (토큰 절약)
+  const schemas = res.data?.results || res.data || [];
+  return schemas.map((s) => ({
+    name: s.entityType === "event" ? s.name : s.name,
+    description: s.schemaJson?.description || "",
+    properties: Object.entries(s.schemaJson?.properties || {})
+      .slice(0, 15)
+      .map(([k, v]) => ({
+        name: k,
+        type: v.type,
+        description: v.description || "",
+      })),
+  }));
+}
+
+// ─────────────────────────────────────────
 // 도구 실행 라우터
-// Claude Tool Use에서 toolName + toolInput으로 호출
 // ─────────────────────────────────────────
 async function executeTool(toolName, toolInput) {
   const map = {
@@ -169,6 +203,7 @@ async function executeTool(toolName, toolInput) {
     get_retention: getRetention,
     get_top_events: getTopEvents,
     get_segment_by_property: getSegmentByProperty,
+    get_event_schemas: getEventSchemas,
   };
 
   const fn = map[toolName];
