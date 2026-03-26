@@ -193,6 +193,28 @@ async function getEventSchemas({ entity_type = "event" }) {
 }
 
 // ─────────────────────────────────────────
+// 8. JQL (JavaScript Query Language)
+//    집계·필터·계산을 쿼리 안에서 처리
+//    → 로우 데이터를 Claude에게 넘기지 않고
+//      집계된 결과만 반환 → 토큰 문제 없음
+//    → 어떤 복잡한 분석이든 자유롭게 표현 가능
+// ─────────────────────────────────────────
+async function executeJql({ script }) {
+  const res = await axios.post(
+    `${QUERY_URL}/jql`,
+    `script=${encodeURIComponent(script)}`,
+    {
+      headers: {
+        Authorization: getAuthHeader(),
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      params: { project_id: pid() },
+    },
+  );
+  return res.data;
+}
+
+// ─────────────────────────────────────────
 // 도구 실행 라우터
 // ─────────────────────────────────────────
 async function executeTool(toolName, toolInput) {
@@ -204,6 +226,7 @@ async function executeTool(toolName, toolInput) {
     get_top_events: getTopEvents,
     get_segment_by_property: getSegmentByProperty,
     get_event_schemas: getEventSchemas,
+    execute_jql: executeJql,
   };
 
   const fn = map[toolName];
